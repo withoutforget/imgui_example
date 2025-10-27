@@ -2,33 +2,23 @@
 #include "DX11Backend.h"
 #include "imgui.h"
 
-Application::Application()
-    : m_backend(nullptr)
-    , m_model(nullptr)
-    , m_view(nullptr)
-    , m_controller(nullptr)
-{
-}
+Application::Application() = default;
 
 Application::~Application() {
     Shutdown();
 }
 
 bool Application::Initialize(int width, int height, const char* title) {
-    // Создаем бекенд (можно легко заменить на другой)
+    // Создаем и инициализируем бекенд
     m_backend = std::make_unique<DX11Backend>();
-    
     if (!m_backend->Initialize(width, height, title)) {
         return false;
     }
 
-    // Инициализируем ImGui контекст
+    // Инициализируем ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-    // Устанавливаем стиль
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     ImGui::StyleColorsDark();
 
     // Создаем компоненты MVC
@@ -40,31 +30,24 @@ bool Application::Initialize(int width, int height, const char* title) {
 }
 
 void Application::Run() {
-    // Главный цикл приложения
     while (!m_backend->ShouldClose()) {
-        // Обработка событий
         m_backend->PollEvents();
-
-        // Обновление логики
         m_controller->Update(ImGui::GetIO().DeltaTime);
 
-        // Начало нового кадра
         m_backend->NewFrame();
-
-        // Рендеринг UI через контроллер
         m_controller->Render();
-
-        // Финальный рендеринг
         m_backend->Render();
         m_backend->Present();
     }
 }
 
 void Application::Shutdown() {
+    // Удаляем компоненты MVC в обратном порядке
     m_controller.reset();
     m_view.reset();
     m_model.reset();
 
+    // Завершаем работу бекенда
     if (m_backend) {
         m_backend->Shutdown();
         m_backend.reset();
